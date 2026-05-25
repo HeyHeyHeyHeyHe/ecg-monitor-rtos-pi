@@ -8,6 +8,12 @@ volatile bool newData = false;
 float lowPass = 0.0;
 float highPass = 0.0;
 
+unsigned long lastBeatTime = 0;
+unsigned long firstBeatTime = 0;
+int bpm = 0;
+int beatCount = 0;
+const int threshold = 5500;
+
 void IRAM_ATTR onTimer() {
   // Check Leads-off
   if ((digitalRead(LOPlus) == 0) && (digitalRead(LOMinus) == 0)) {
@@ -27,17 +33,47 @@ void setup() {
   timerAlarmWrite(timer, 2000, true);               // 2000us = 500Hz
   timerAlarmEnable(timer);
   
-  Serial.println("=== ECG Week 2 - Day 3: Timer Interrupt 500Hz ===");
+  Serial.println("=== ECG Week 2 ===");
   Serial.println("Collecting sample 500 times/second...");
 }
 
 void loop() {
   if (newData) {
-    int currentECG = ecgValue;
+    int currentECG = ecgValue; 
     newData = false;
     // Can add filter here 
     lowPass = lowPass * 0.92 + currentECG * 0.08;  // lowPass filter: baseline wander due to breathe
     highPass = currentECG - lowPass;               // highPass: peaks
-    Serial.println((int)(highPass * 8 + 2000));
+    int filteredValue = (int)(highPass * 8 + 2000);
+
+    // Calculate Bpm 
+    static bool insidePeak = false; 
+
+    if (filteredValue > threshold) {
+      if (!insidePeak && (millis() - lastBeatTime > 300)) { //detect peaks
+        insidePeak = true; 
+        if (beatCount == 0) {
+          firstBeatTime = millis(); // Record the first beat in real time 
+        }
+        lastBeatTime = millis();
+        beatCount++;
+        if (beatCount >= 5) {  
+          unsigned long totalDuration = lastBeatTime - firstBeatTime;
+          if (totalDuration > 0) {
+            // Algorithm: (number of times between beats * 60000) / total duration 
+            bpm = (4 * 60000) / totalDuration; 
+          }
+          firstBeatTime = lastBeatTime;
+          beatCount = 1;
+        }
+      }
+    } else {
+      insidePeak = false; 
+    }
+
+    // Results on Serial Monitor: Filtered Ecg value , Bpm value 
+    Serial.print(filteredValue);
+    Serial.print(",");
+    Serial.println(bpm);
   }
 }
