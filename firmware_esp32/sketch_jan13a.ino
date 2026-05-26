@@ -12,7 +12,7 @@ unsigned long lastBeatTime = 0;
 unsigned long firstBeatTime = 0;
 int bpm = 0;
 int beatCount = 0;
-const int threshold = 5500;
+const int threshold = 3800;
 
 void IRAM_ATTR onTimer() {
   // Check Leads-off
@@ -50,7 +50,7 @@ void loop() {
     static bool insidePeak = false; 
 
     if (filteredValue > threshold) {
-      if (!insidePeak && (millis() - lastBeatTime > 300)) { //detect peaks
+      if (!insidePeak && (millis() - lastBeatTime > 350)) { //detect peaks
         insidePeak = true; 
         if (beatCount == 0) {
           firstBeatTime = millis(); // Record the first beat in real time 
@@ -61,7 +61,10 @@ void loop() {
           unsigned long totalDuration = lastBeatTime - firstBeatTime;
           if (totalDuration > 0) {
             // Algorithm: (number of times between beats * 60000) / total duration 
-            bpm = (4 * 60000) / totalDuration; 
+            int calculatedBpm = (4 * 60000) / totalDuration;
+            if (calculatedBpm >= 50 && calculatedBpm <= 140) {
+              bpm = calculatedBpm;
+            }
           }
           firstBeatTime = lastBeatTime;
           beatCount = 1;
