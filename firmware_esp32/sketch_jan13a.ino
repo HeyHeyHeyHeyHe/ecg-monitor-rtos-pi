@@ -6,8 +6,10 @@ struct Package {
   int filteredValue;
   float bpm;
 };
-QueueHandle_t ecgQueue;
+QueueHandle_t rawEcgQueue;
+QueueHandle_t processedQueue;
 
+void TaskADC(void *pvParameters);
 void TaskProcessECG(void *pvParameters);
 void TaskSerialPrint(void *pvParameters);
 
@@ -17,15 +19,17 @@ void setup() {
   pinMode(LOMinus, INPUT);
   pinMode(ecgPin, INPUT);
 
-  ecgQueue = xQueueCreate(50, sizeof(Package));
+  rawEcgQueue = xQueueCreate(50, sizeof(int));
+  processedQueue = xQueueCreate(50, sizeof(Package));
 
-  if (ecgQueue != NULL) {
+  if (rawEcgQueue != NULL && processedQueue != NULL) {
+    xTaskCreatePinnedToCore(TaskADC, "TaskADC", 2048, NULL, 3, NULL, 1);
     xTaskCreatePinnedToCore(
       TaskProcessECG,
       "ProcessECG",
       4096,
       NULL,
-      3,
+      2,
       NULL,
       1);
 
@@ -46,7 +50,23 @@ void loop() {
   vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
-//Task1
+//Task 1
+void TaskADC(void *pvParameters) {
+  (void)pvParameters;
+  for (;;) {
+    int currentECG = 0;
+
+    if ((digitalRead(LOPlus) == 0) && (digitalRead(LOMinus) == 0)) {
+      currentECG = analogRead(ecgPin);
+    } else {
+      currentECG = -1;
+    }
+
+    xQueueSend(rawEcgQueue, &currentECG, 0);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+}
+//Task 2
 void TaskProcessECG(void *pvParameters) {
   (void)pvParameters;
   float lowPass = 0.0;
@@ -55,50 +75,50 @@ void TaskProcessECG(void *pvParameters) {
   unsigned long currentTime = 0;
   int threshold = 3800;  // Threshold for peak detection
   int lastValue = 0;
-  int filteredValue=0;
-  float bpm=0.0;
+  int filteredValue = 0;
+  float bpm = 0.0;
+  int receivedRaw = 0;
 
   for (;;) {
-    currentTime = millis();
-    if ((digitalRead(LOPlus) == 0) && (digitalRead(LOMinus) == 0)) {
-      int currentECG = analogRead(ecgPin);
-      
-      lowPass = lowPass * 0.92 + currentECG * 0.08;
-      highPass = currentECG - lowPass;
-      filteredValue = (int)(highPass * 8 + 2000);
+    if (xQueueReceive(rawEcgQueue, &receivedRaw, portMAX_DELAY)) {
+      currentTime = millis();
+      if (receivedRaw != -1) {
+        lowPass = lowPass * 0.92 + receivedRaw * 0.08;
+        highPass = receivedRaw - lowPass;
+        filteredValue = (int)(highPass * 8 + 2000);
 
-      if (filteredValue > threshold && filteredValue > lastValue) {
-        unsigned long timeSinceLastPeak = currentTime - lastPeakTime;
-        if (timeSinceLastPeak > 500) {
-          lastPeakTime = currentTime;
-          bpm = 60000.0 / timeSinceLastPeak;  
+        if (filteredValue > threshold && filteredValue > lastValue) {
+          unsigned long timeSinceLastPeak = currentTime - lastPeakTime;
+          if (timeSinceLastPeak > 500) {
+            lastPeakTime = currentTime;
+            bpm = 60000.0 / timeSinceLastPeak;
+          }
+        }
+        lastValue = filteredValue;
+      } else {
+        filteredValue = 2000;
+        if (currentTime - lastPeakTime > 4000) {
+          bpm = 0.0;
         }
       }
-      lastValue = filteredValue;
-    } else {
-      filteredValue=0;
-      if (currentTime - lastPeakTime > 4000) {
-        bpm = 0.0; 
-    }} 
-    if (currentTime - lastPeakTime > 3000 && bpm > 0.0) {
-      bpm = 0.0;
+      if (currentTime - lastPeakTime > 3000 && bpm > 0.0) {
+        bpm = 0.0;
+      }
+      Package dataToSend;
+      dataToSend.filteredValue = filteredValue;
+      dataToSend.bpm = bpm;
+      xQueueSend(processedQueue, &dataToSend, 0);
     }
-    Package dataToSend;
-    dataToSend.filteredValue = filteredValue;
-    dataToSend.bpm = bpm;
-
-    xQueueSend(ecgQueue, &dataToSend, 0);
-    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
 
-// Task 2
+// Task 3
 void TaskSerialPrint(void *pvParameters) {
   (void)pvParameters;
   Package receivedData;
 
   for (;;) {
-    if (xQueueReceive(ecgQueue, &receivedData, portMAX_DELAY)) {
+    if (xQueueReceive(processedQueue, &receivedData, portMAX_DELAY)) {
       Serial.print(receivedData.filteredValue);
       Serial.print(",");
       Serial.println(receivedData.bpm);
