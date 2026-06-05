@@ -1,12 +1,17 @@
-#define ecgPin 36  // SVP (GPIO36)
-const int LOPlus = 16; // Leads-off detection positive pin   
-const int LOMinus = 17; // Leads-off detection negative pin
+#define ecgPin 36        // SVP (GPIO36)
+const int LOPlus = 16;   // Leads-off detection positive pin
+const int LOMinus = 17;  // Leads-off detection negative pin
 
 enum HeartStatus {
   NORMAL = 0,
   BRADYCARDIA = 1,  // Bradycardia (< 60 BPM)
   TACHYCARDIA = 2,  // Tachycardia (> 100 BPM)
   LEADS_OFF = 3
+};
+
+struct EcgSample {
+  int value;
+  unsigned long timestamp;
 };
 
 struct Package {
@@ -29,7 +34,7 @@ void setup() {
   pinMode(LOMinus, INPUT);
   pinMode(ecgPin, INPUT);
   // Initialize FreeRTOS Queues (Capacity: 50 elements each)
-  rawEcgQueue = xQueueCreate(50, sizeof(int));
+  rawEcgQueue = xQueueCreate(50, sizeof(EcgSample));
   processedQueue = xQueueCreate(50, sizeof(Package));
 
   if (rawEcgQueue != NULL && processedQueue != NULL) {
@@ -69,14 +74,16 @@ void loop() {
 void TaskADC(void *pvParameters) {
   (void)pvParameters;
   for (;;) {
-    int currentECG = 0;
-    // Check Leads-off before reading analog value 
+    EcgSample sample;
+    sample.timestamp = millis();
+
+    // Check Leads-off before reading analog value
     if ((digitalRead(LOPlus) == 0) && (digitalRead(LOMinus) == 0)) {
-      currentECG = analogRead(ecgPin);
+      sample.value = analogRead(ecgPin);
     } else {
-      currentECG = -1; // Flag indicating electrode disconnection
+      sample.value = -1;  // Flag indicating electrode disconnection
     }
-    xQueueSend(rawEcgQueue, &currentECG, 0);
+    xQueueSend(rawEcgQueue, &sample, 0);
     vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }
@@ -89,6 +96,7 @@ void TaskADC(void *pvParameters) {
 
 void TaskProcessECG(void *pvParameters) {
   (void)pvParameters;
+  EcgSample receivedSample;
   float lowPass = 0.0;
   float highPass = 0.0;
   unsigned long lastPeakTime = 0;
@@ -108,14 +116,15 @@ void TaskProcessECG(void *pvParameters) {
   float squared = 0.0;
 
   // Variables for adaptive threshold
-  float signalLevel = 57000.0; // estimate for true QRS peak power
+  float signalLevel = 57000.0;  // estimate for true QRS peak power
   float noiseLevel = 750.0;
-  float threshold = 15000.0; // initial threshold 
+  float threshold = 15000.0;  // initial threshold
   int localMax = 0;
-  static bool peakStateRecorded = false; // Flag to check whether the peak is recorded 
+  static bool peakStateRecorded = false;  // Flag to check whether the peak is recorded
   for (;;) {
-    if (xQueueReceive(rawEcgQueue, &receivedRaw, portMAX_DELAY)) {
-      currentTime = millis();
+    if (xQueueReceive(rawEcgQueue, &receivedSample, portMAX_DELAY)) {
+      currentTime = receivedSample.timestamp; 
+      receivedRaw = receivedSample.value; 
       if (receivedRaw != -1) {
         //Baseline wander removal (high-pass)
         lowPass = lowPass * 0.92 + receivedRaw * 0.08;
@@ -137,32 +146,38 @@ void TaskProcessECG(void *pvParameters) {
 
         // Adaptive threshold + Bpm calculation
         if (filteredValue > (int)threshold) {
-          // Identify local maximum point 
+          // Identify local maximum point
           if (filteredValue < lastValue && !peakStateRecorded) {
-            localMax = lastValue; 
-            // Update values for bpm and signalLevel 
+            localMax = lastValue;
+            // Update values for bpm and signalLevel
             unsigned long timeSinceLastPeak = currentTime - lastPeakTime;
             if (timeSinceLastPeak > 500) {
               lastPeakTime = currentTime;
-              bpm = 60000.0 / timeSinceLastPeak; 
+              bpm = 60000.0 / timeSinceLastPeak;
               signalLevel = 0.125 * (float)localMax + 0.875 * signalLevel;
-              peakStateRecorded = true; 
+              peakStateRecorded = true;
             }
           }
-        } else  { // Post-peak exit phase 
+        } else {  // Post-peak exit phase
           if (peakStateRecorded) {
-            // Reset variables 
-            peakStateRecorded = false; 
+            // Reset variables
+            peakStateRecorded = false;
             localMax = 0;
           }
-          if (filteredValue < (int)(threshold*0.5)){
-          noiseLevel = 0.125 * (float)filteredValue + 0.875 * noiseLevel; 
+          if (filteredValue < (int)(threshold * 0.5)) {
+            float temp_noise = 0.125 * (float)filteredValue + 0.875 * noiseLevel;
+            // prevent noiseLevel to be higher than 8% signalLevel 
+            if (temp_noise < (signalLevel * 0.08)) {
+              noiseLevel = temp_noise;
+            } else {
+              noiseLevel = signalLevel * 0.08;
+            }
           }
         }
         threshold = noiseLevel + 0.25 * (signalLevel - noiseLevel);
 
         // Detect anomal signal
-        if (currentTime - lastPeakTime > 3500) { 
+        if (currentTime - lastPeakTime > 3500) {
           bpm = 0.0;
           currentStatus = BRADYCARDIA;
         } else if (bpm > 0.0 && bpm < 60.0) {
@@ -179,7 +194,7 @@ void TaskProcessECG(void *pvParameters) {
           bpm = 0.0;
         }
         currentStatus = LEADS_OFF;
-        // Reset 
+        // Reset
         lowPass = 0.0;
         prev_highPass = 0.0;
         moving_average_index = 0;
@@ -189,9 +204,9 @@ void TaskProcessECG(void *pvParameters) {
         }
         peakStateRecorded = false;
         localMax = 0;
-        signalLevel = 4500.0;
-        noiseLevel = 500.0;
-        threshold = 1500.0;
+        signalLevel = 57000.0;
+        noiseLevel = 750.0;
+        threshold = 15000.0;
       }
       Package dataToSend;
       dataToSend.rawValue = receivedRaw;
