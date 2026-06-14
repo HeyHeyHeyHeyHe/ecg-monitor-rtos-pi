@@ -2,6 +2,8 @@
 const int LOPlus = 16;   // Leads-off detection positive pin
 const int LOMinus = 17;  // Leads-off detection negative pin
 
+HardwareSerial SerialPi(2);
+
 enum HeartStatus {
   NORMAL = 0,
   BRADYCARDIA = 1,  // Bradycardia (< 60 BPM)
@@ -30,6 +32,7 @@ void TaskSerialPrint(void *pvParameters);
 
 void setup() {
   Serial.begin(115200);
+  SerialPi.begin(115200, SERIAL_8N1, 5, 4);
   pinMode(LOPlus, INPUT);
   pinMode(LOMinus, INPUT);
   pinMode(ecgPin, INPUT);
@@ -52,7 +55,7 @@ void setup() {
     xTaskCreatePinnedToCore(
       TaskSerialPrint,
       "SerialPrint",
-      2048,
+      3072,
       NULL,
       1,
       NULL,
@@ -242,6 +245,18 @@ void TaskSerialPrint(void *pvParameters) {
         case TACHYCARDIA: Serial.println("TACHYCARDIA"); break;
         case LEADS_OFF: Serial.println("LEADS_OFF"); break;
       }
+      SerialPi.print(millis());
+      SerialPi.print(",");
+      SerialPi.print(receivedData.rawValue);
+      SerialPi.print(",");
+      SerialPi.print(receivedData.filteredValue);
+      SerialPi.print(",");
+      SerialPi.print(receivedData.bpm, 1);
+      SerialPi.print(",");
+
+      SerialPi.println(receivedData.status); 
     }
   }
 }
+
+
