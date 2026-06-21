@@ -3,9 +3,9 @@ import csv
 import time
 import os
 
-SERIAL_PORT = '/dev/serial0' 
+SERIAL_PORT = '/dev/ttyS0' 
 BAUD_RATE = 115200
-CSV_FILE_NAME = "ecg_data_log.csv"
+CSV_FILE_NAME = "/home/pi/ecg_data_log.csv"
 
 STATUS_MAP = {
     "0": "NORMAL",
@@ -38,7 +38,7 @@ try:
                 raw_line = ser.readline()
                 decoded_line = raw_line.decode('utf-8', errors='ignore').strip()
                 
-                if not decoded_line:  
+                if not decoded_line:
                     continue
                 
                 data_parts = decoded_line.split(',')
