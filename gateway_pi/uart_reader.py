@@ -7,6 +7,8 @@ SERIAL_PORT = '/dev/ttyS0'
 BAUD_RATE = 115200
 CSV_FILE_NAME = "/home/pi/ecg_data_log.csv"
 
+FLAG_FILE_NAME = "/home/pi/sys_active.flag"
+
 STATUS_MAP = {
     "0": "NORMAL",
     "1": "BRADYCARDIA",
@@ -40,7 +42,9 @@ try:
                 
                 if not decoded_line:
                     continue
-                
+                if not os.path.exists(FLAG_FILE_NAME):
+                    continue
+
                 data_parts = decoded_line.split(',')
                 
                 if len(data_parts) == 5:

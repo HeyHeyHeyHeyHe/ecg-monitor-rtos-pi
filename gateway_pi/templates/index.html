@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECG Realtime Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; }
+        .container { width: 85%; margin: auto; padding-top: 20px; }
+        .value-box { font-size: 2.5rem; color: #00ff88; margin: 20px; font-weight: bold; }
+        .chart-container { background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .metrics-grid { display: flex; justify-content: center; gap: 40px; }
+
+        /* --- NEW CSS LINES: Fix width containers to prevent label text from shifting/shaking --- */
+        #bpm-value { display: inline-block; min-width: 80px; text-align: left; }
+        #status-value { display: inline-block; min-width: 310px; text-align: left; }
+        
+        /* Control button styles */
+        .btn-control { font-size: 1.1rem; font-weight: bold; padding: 10px 30px; margin-bottom: 15px; border: none; border-radius: 20px; cursor: pointer; }
+        .btn-stop { background-color: #ff3333; color: white; }
+        .btn-start { background-color: #00ff88; color: #121212; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Realtime ECG Dashboard</h1>
+        
+        <button id="ctrl-btn" class="btn-control btn-stop" onclick="toggleSystem()">STOP SYSTEM</button>
+
+        <div class="metrics-grid">
+            <div class="value-box">
+                BPM: <span id="bpm-value">0</span>
+            </div>
+            <div class="value-box">
+                STATUS: <span id="status-value" style="color: #ffffff;">WAITING</span>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="ecgChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('ecgChart').getContext('2d');
+        const maxDataPoints = 150; // Increased to 150 points for a longer and better wave visualization
+
+        const ecgChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: Array(maxDataPoints).fill(''),
+                datasets: [{
+                    label: 'ECG Signal',
+                    data: Array(maxDataPoints).fill(null), // Initially null for accurate automatic Y-axis scaling
+                    borderColor: '#00ff88',
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false, // Disable animation for smooth realtime scrolling without delay
+                scales: {
+                    x: { display: false } // Hide X-axis labels for minimalist design
+                }
+            }
+        });
+
+        var socket = io();
+        const statusTxt = document.getElementById('status-value');
+        
+        // --- NEW SCRIPT LINES: Start/Stop button logic for Day 6-7 ---
+        let systemRunning = true;
+        const ctrlBtn = document.getElementById('ctrl-btn');
+
+        function toggleSystem() {
+            systemRunning = !systemRunning;
+            if (systemRunning) {
+                ctrlBtn.innerText = "STOP SYSTEM";
+                ctrlBtn.className = "btn-control btn-stop";
+                ecgChart.data.datasets[0].data = Array(maxDataPoints).fill(null);
+                ecgChart.update();
+            } else {
+                ctrlBtn.innerText = "START SYSTEM";
+                ctrlBtn.className = "btn-control btn-start";
+                statusTxt.innerText = "PAUSED";
+                statusTxt.style.color = "#aaaaaa";
+            }
+            socket.emit('toggle_system', { 'status': systemRunning });
+        }
+
+        socket.on('ecg_data', function(packet) {
+            if (!systemRunning) return; // Ignore new incoming data if system is paused
+
+            document.getElementById('bpm-value').innerText = packet.bpm;
+            
+            if (packet.status) {
+                statusTxt.innerText = packet.status;
+                if (packet.status === "NORMAL") {
+                    statusTxt.style.color = "#00ff88";    // Green
+                } else if (packet.status === "TACHYCARDIA") {
+                    statusTxt.style.color = "#ff3333";    // Bright Red
+                } else if (packet.status === "BRADYCARDIA") {
+                    statusTxt.style.color = "#ffaa00";    // Orange
+                } else if (packet.status === "LEAD OFF" || packet.status === "LEAD_OFF") {
+                    statusTxt.style.color = "#ff00ff";    // Magenta/Pink for lead disconnection
+                } else {
+                    statusTxt.style.color = "#ffffff";    // White
+                }
+            }
+
+            ecgChart.data.datasets[0].data.push(packet.signal);
+            if (ecgChart.data.datasets[0].data.length > maxDataPoints) {
+                ecgChart.data.datasets[0].data.shift();
+            }
+            ecgChart.update();
+        });
+    </script>
+</body>
+</html>
