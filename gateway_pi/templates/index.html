@@ -28,7 +28,7 @@
         <h1>Realtime ECG Dashboard</h1>
         
         <button id="ctrl-btn" class="btn-control btn-stop" onclick="toggleSystem()">STOP SYSTEM</button>
-
+        <button id="export-btn" class="btn-control" style="background-color: #0984e3; color: white;" onclick="exportReport()">EXPORT REPORT</button>
         <div class="metrics-grid">
             <div class="value-box">
                 BPM: <span id="bpm-value">0</span>
@@ -90,6 +90,39 @@
                 statusTxt.style.color = "#aaaaaa";
             }
             socket.emit('toggle_system', { 'status': systemRunning });
+        }
+        function exportReport() {
+            const exportBtn = document.getElementById('export-btn');
+    
+            exportBtn.innerText = "PROCESSING...";
+            exportBtn.disabled = true;
+            exportBtn.style.backgroundColor = "#718096";
+
+            fetch('/export-report', { method: 'POST' })
+            .then(response => {
+            if (!response.ok) throw new Error("Lỗi hệ thống không thể xuất file");
+            return response.blob(); // Nhận dữ liệu trả về dạng file thô (Blob)
+            })
+            .then(blob => {
+                // Tạo một đường link ảo ngầm để kích hoạt trình duyệt tự download file về máy
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ecg_advanced_report.png'; // Tên file khi tải về máy bạn
+                document.body.appendChild(a);
+                a.click(); // Tự động kích hoạt hành động click tải về
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("❌ Có lỗi xảy ra khi xuất báo cáo!");
+            })
+            .finally(() => {
+                exportBtn.innerText = "EXPORT REPORT";
+                exportBtn.disabled = false;
+                exportBtn.style.backgroundColor = "#0984e3";
+            });
         }
 
         socket.on('ecg_data', function(packet) {

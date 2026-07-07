@@ -1,7 +1,8 @@
+import subprocess
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, render_template
+from flask import Flask, render_template, send_file
 from flask_socketio import SocketIO
 import os
 import atexit
@@ -50,6 +51,22 @@ def handle_toggle(data):
         except Exception as e:
             print(f"[ERROR] Failed to switch to STOP state: {e}")
 
+@app.route('/export-report', methods=['POST'])
+def export_report_api():
+    try:
+        # Gọi script sinh file ảnh ngầm
+        result = subprocess.run(['python3', 'analyze_day3_4.py'], capture_output=True, text=True, check=True)
+        print(f"[SYSTEM] Script output: {result.stdout}")
+        
+        # --- SỬA DÒNG RETURN CŨ THÀNH DÒNG NÀY ---
+        # Gửi file ảnh trực tiếp về trình duyệt để tải xuống
+        return send_file('ecg_advanced_report.png', as_attachment=True)
+        
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] Lỗi khi chạy script phân tích: {e.stderr}")
+        return "Lỗi thực thi hệ thống ngầm", 500
+    except Exception as e:
+        return str(e), 500
 def watch_csv_and_emit():
     global should_seek_to_end
     print("[SYSTEM] Background thread is checking CSV file...")
