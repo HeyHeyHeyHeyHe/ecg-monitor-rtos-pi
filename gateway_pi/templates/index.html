@@ -2,33 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>ECG Realtime Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; }
-        .container { width: 85%; margin: auto; padding-top: 20px; }
-        .value-box { font-size: 2.5rem; color: #00ff88; margin: 20px; font-weight: bold; }
+        body { font-family: Arial, sans-serif; background: #121212; color: #fff; text-align: center; }        
+        .container { width: 85%; margin: auto; padding-top: calc(20px + env(safe-area-inset-top)); padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
+        .value-box { font-size: 2.5rem; color: #00ff88; margin: 20px; font-weight: bold; flex: 1; text-align: center; }
         .chart-container { background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .metrics-grid { display: flex; justify-content: center; gap: 40px; }
+        .metrics-grid { display: flex; justify-content: center; gap: 40px; max-width: 800px; margin: auto; }
 
-        /* --- NEW CSS LINES: Fix width containers to prevent label text from shifting/shaking --- */
         #bpm-value { display: inline-block; min-width: 80px; text-align: left; }
-        #status-value { display: inline-block; min-width: 310px; text-align: left; }
+        #status-value { display: inline-block; min-width: 310px; text-align: center; }
         
         /* Control button styles */
         .btn-control { font-size: 1.1rem; font-weight: bold; padding: 10px 30px; margin-bottom: 15px; border: none; border-radius: 20px; cursor: pointer; }
         .btn-stop { background-color: #ff3333; color: white; }
         .btn-start { background-color: #00ff88; color: #121212; }
+
+        /* Responsive styles for mobile view */
+        @media (max-width: 600px) {
+            .metrics-grid {
+                flex-direction: column; 
+                align-items: center;    
+                gap: 0px;               
+            }
+            .value-box {
+                font-size: 1.5rem;
+                margin: 5px 0;          
+            }
+            #bpm-value, #status-value {
+                min-width: auto;
+                display: inline;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Realtime ECG Dashboard</h1>
         
+        <!-- Interactive system control elements -->
         <button id="ctrl-btn" class="btn-control btn-stop" onclick="toggleSystem()">STOP SYSTEM</button>
         <button id="export-btn" class="btn-control" style="background-color: #0984e3; color: white;" onclick="exportReport()">EXPORT REPORT</button>
+        
         <div class="metrics-grid">
             <div class="value-box">
                 BPM: <span id="bpm-value">0</span>
@@ -38,6 +56,7 @@
             </div>
         </div>
 
+        <!-- Realtime chart presentation -->
         <div class="chart-container">
             <canvas id="ecgChart"></canvas>
         </div>
@@ -45,15 +64,16 @@
 
     <script>
         const ctx = document.getElementById('ecgChart').getContext('2d');
-        const maxDataPoints = 150; // Increased to 150 points for a longer and better wave visualization
+        const maxDataPoints = 150; 
 
+        /* Initialize Chart.js configuration for continuous streaming data */
         const ecgChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: Array(maxDataPoints).fill(''),
                 datasets: [{
                     label: 'ECG Signal',
-                    data: Array(maxDataPoints).fill(null), // Initially null for accurate automatic Y-axis scaling
+                    data: Array(maxDataPoints).fill(null), 
                     borderColor: '#00ff88',
                     borderWidth: 2.5,
                     pointRadius: 0,
@@ -62,20 +82,21 @@
             },
             options: {
                 responsive: true,
-                animation: false, // Disable animation for smooth realtime scrolling without delay
+                animation: false, 
                 scales: {
-                    x: { display: false } // Hide X-axis labels for minimalist design
+                    x: { display: false } 
                 }
             }
         });
 
+        /* Setup Socket.io network handler and state control variables */
         var socket = io();
         const statusTxt = document.getElementById('status-value');
         
-        // --- NEW SCRIPT LINES: Start/Stop button logic for Day 6-7 ---
         let systemRunning = true;
         const ctrlBtn = document.getElementById('ctrl-btn');
 
+        /* Toggle between running and paused data collection modes */
         function toggleSystem() {
             systemRunning = !systemRunning;
             if (systemRunning) {
@@ -91,6 +112,8 @@
             }
             socket.emit('toggle_system', { 'status': systemRunning });
         }
+
+        /* Post request processing wrapper to generate and download reports */
         function exportReport() {
             const exportBtn = document.getElementById('export-btn');
     
@@ -100,23 +123,23 @@
 
             fetch('/export-report', { method: 'POST' })
             .then(response => {
-            if (!response.ok) throw new Error("Lỗi hệ thống không thể xuất file");
-            return response.blob(); // Nhận dữ liệu trả về dạng file thô (Blob)
+                if (!response.ok) throw new Error("System error: Unable to export file");
+                return response.blob(); 
             })
             .then(blob => {
-                // Tạo một đường link ảo ngầm để kích hoạt trình duyệt tự download file về máy
+                // Create a temporary link to trigger the download
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'ecg_advanced_report.png'; // Tên file khi tải về máy bạn
+                a.download = 'ecg_advanced_report.png'; 
                 document.body.appendChild(a);
-                a.click(); // Tự động kích hoạt hành động click tải về
+                a.click(); 
                 a.remove();
                 window.URL.revokeObjectURL(url);
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert("❌ Có lỗi xảy ra khi xuất báo cáo!");
+                alert(" An error occurred while exporting the report!");
             })
             .finally(() => {
                 exportBtn.innerText = "EXPORT REPORT";
@@ -126,22 +149,22 @@
         }
 
         socket.on('ecg_data', function(packet) {
-            if (!systemRunning) return; // Ignore new incoming data if system is paused
+            if (!systemRunning) return; 
 
             document.getElementById('bpm-value').innerText = packet.bpm;
             
             if (packet.status) {
                 statusTxt.innerText = packet.status;
                 if (packet.status === "NORMAL") {
-                    statusTxt.style.color = "#00ff88";    // Green
+                    statusTxt.style.color = "#00ff88";   
                 } else if (packet.status === "TACHYCARDIA") {
-                    statusTxt.style.color = "#ff3333";    // Bright Red
+                    statusTxt.style.color = "#ff3333";    
                 } else if (packet.status === "BRADYCARDIA") {
-                    statusTxt.style.color = "#ffaa00";    // Orange
+                    statusTxt.style.color = "#ffaa00";    
                 } else if (packet.status === "LEAD OFF" || packet.status === "LEAD_OFF") {
-                    statusTxt.style.color = "#ff00ff";    // Magenta/Pink for lead disconnection
+                    statusTxt.style.color = "#ff00ff";    
                 } else {
-                    statusTxt.style.color = "#ffffff";    // White
+                    statusTxt.style.color = "#ffffff";    
                 }
             }
 
