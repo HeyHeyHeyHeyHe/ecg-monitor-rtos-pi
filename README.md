@@ -70,7 +70,6 @@ This project implements a medical prototype designed to capture analog ECG signa
   ```mermaid
   graph LR
     subgraph "ESP32-WROOM-32D"
-        ESP[ESP32-WROOM-32D]
         GPIO36[GPIO36\nSVP]
         GPIO16[GPIO16]
         GPIO17[GPIO17]
@@ -91,7 +90,6 @@ This project implements a medical prototype designed to capture analog ECG signa
     AD -->|"3.3V"| V33
     AD -->|"GND"| GND1
 
-    style ESP fill:#4a90e2,stroke:#333
     style AD fill:#e74c3c,stroke:#333
     style GPIO36 fill:#27ae60,stroke:#333
     style GPIO16 fill:#f39c12,stroke:#333
@@ -109,14 +107,12 @@ This project implements a medical prototype designed to capture analog ECG signa
   ```mermaid
   graph LR
     subgraph "ESP32-WROOM-32D"
-        ESP[ESP32-WROOM-32D]
         GPIO4[GPIO4\nTX]
         GPIO5[GPIO5\nRX]
         GND1[GND]
     end
 
     subgraph "Raspberry Pi 4"
-        Pi[Raspberry Pi 4]
         GPIO14[GPIO14\nTX]
         GPIO15[GPIO15\nRX]
         GND2[GND]
@@ -126,8 +122,6 @@ This project implements a medical prototype designed to capture analog ECG signa
     GPIO5 -->|"RX"| GPIO14
     GND1 -->|"GND"| GND2
 
-    style ESP fill:#4a90e2,stroke:#333
-    style Pi fill:#e67e22,stroke:#333
     style GPIO4 fill:#27ae60,stroke:#333
     style GPIO5 fill:#9b59b6,stroke:#333
 
