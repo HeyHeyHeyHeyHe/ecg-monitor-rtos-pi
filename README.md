@@ -20,23 +20,26 @@ This project implements a medical prototype designed to capture analog ECG signa
   The system is decoupled into three distinct layers to optimize real-time constraints and compute distribution:
   
   ```mermaid
-  flowchart TD
-    A[AD8232 Sensor + ECG Electrodes] -->|Analog Signal| B[ESP32 + FreeRTOS]
-    B -->|UART Serial Data| C[Raspberry Pi Gateway]
-    C -->|WebSockets| D[Web Dashboard]
-    C -->|Python Engine| E[HRV Analysis & PDF Generator]
-    
-    subgraph "Tier 1: Edge Computing (ESP32)"
-        B
-    end
-    subgraph "Tier 2: IoT Gateway (Raspberry Pi)"
-        C
-        E
-    end
-    subgraph "Tier 3: Visualization & Analytics"
-        D
-    end
-    
+  ---
+config:
+  layout: elk
+---
+flowchart LR
+ subgraph subGraph0["Tier 1: Edge Computing (ESP32)"]
+        B["ESP32 + FreeRTOS"]
+  end
+ subgraph subGraph1["Tier 2: IoT Gateway (Raspberry Pi)"]
+        C["Raspberry Pi Gateway"]
+        E["HRV Analysis & PDF Generator"]
+  end
+ subgraph subGraph2["Tier 3: Visualization & Analytics"]
+        D["Web Dashboard"]
+  end
+    A["AD8232 Sensor + ECG Electrodes"] -- Analog Signal --> B
+    B -- UART Serial Data --> C
+    C -- WebSockets --> D
+    C -- Python Engine --> E
+
     style B fill:#f9f,stroke:#333,stroke-width:2px
     style C fill:#bbf,stroke:#333,stroke-width:2px
     style D fill:#f96,stroke:#333,stroke-width:2px
