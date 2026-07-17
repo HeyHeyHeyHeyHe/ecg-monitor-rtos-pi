@@ -17,8 +17,9 @@ This project implements a medical prototype designed to capture analog ECG signa
 
 * **Block Diagram**:
   
-  The system is decoupled into three distinct layers to optimize real-time constraints and compute distribution: 
-
+  The system is decoupled into three distinct layers to optimize real-time constraints and compute distribution:
+  
+  ```mermaid
   flowchart TD
     A[AD8232 Sensor + ECG Electrodes] -->|Analog Signal| B[ESP32 + FreeRTOS]
     B -->|UART Serial Data| C[Raspberry Pi Gateway]
@@ -39,6 +40,7 @@ This project implements a medical prototype designed to capture analog ECG signa
     style B fill:#f9f,stroke:#333,stroke-width:2px
     style C fill:#bbf,stroke:#333,stroke-width:2px
     style D fill:#f96,stroke:#333,stroke-width:2px
+  ```
 
   1. Tier 1: Edge Computing (ESP32)
   - Sampling: Reads the AD8232 analog output using a hardware timer interrupt.
@@ -65,6 +67,7 @@ This project implements a medical prototype designed to capture analog ECG signa
   
 * **AD8232 ESP32 Connection**: 
 
+  ```mermaid
   graph LR
     subgraph "ESP32-WROOM-32D"
         ESP[ESP32-WROOM-32D]
@@ -99,9 +102,11 @@ This project implements a medical prototype designed to capture analog ECG signa
     linkStyle 1 stroke:#f39c12,stroke-width:3px
     linkStyle 2 stroke:#9b59b6,stroke-width:3px
     linkStyle 3 stroke:#f1c40f,stroke-width:3px
+  ```
 
 * **ESP32 Raspberry Pi Connection**: 
-  
+
+  ```mermaid
   graph LR
     subgraph "ESP32-WROOM-32D"
         ESP[ESP32-WROOM-32D]
@@ -129,6 +134,7 @@ This project implements a medical prototype designed to capture analog ECG signa
     linkStyle 0 stroke:#27ae60,stroke-width:3px
     linkStyle 1 stroke:#9b59b6,stroke-width:3px
     linkStyle 2 stroke:#2c3e50,stroke-width:3px
+  ```
 
 ---
 
