@@ -21,28 +21,28 @@ This project implements a medical prototype designed to capture analog ECG signa
   
   ```mermaid
   ---
-config:
-  layout: elk
----
-flowchart LR
- subgraph subGraph0["Tier 1: Edge Computing (ESP32)"]
-        B["ESP32 + FreeRTOS"]
-  end
- subgraph subGraph1["Tier 2: IoT Gateway (Raspberry Pi)"]
-        C["Raspberry Pi Gateway"]
-        E["HRV Analysis & PDF Generator"]
-  end
- subgraph subGraph2["Tier 3: Visualization & Analytics"]
-        D["Web Dashboard"]
-  end
-    A["AD8232 Sensor + ECG Electrodes"] -- Analog Signal --> B
-    B -- UART Serial Data --> C
-    C -- WebSockets --> D
-    C -- Python Engine --> E
+  config:
+    layout: elk
+  ---
+  flowchart LR
+  subgraph subGraph0["Tier 1: Edge Computing (ESP32)"]
+          B["ESP32 + FreeRTOS"]
+    end
+  subgraph subGraph1["Tier 2: IoT Gateway (Raspberry Pi)"]
+          C["Raspberry Pi Gateway"]
+          E["HRV Analysis & PDF Generator"]
+    end
+  subgraph subGraph2["Tier 3: Visualization & Analytics"]
+          D["Web Dashboard"]
+    end
+      A["AD8232 Sensor + ECG Electrodes"] -- Analog Signal --> B
+      B -- UART Serial Data --> C
+      C -- WebSockets --> D
+      C -- Python Engine --> E
 
-    style B fill:#f9f,stroke:#333,stroke-width:2px
-    style C fill:#bbf,stroke:#333,stroke-width:2px
-    style D fill:#f96,stroke:#333,stroke-width:2px
+      style B fill:#f9f,stroke:#333,stroke-width:2px
+      style C fill:#bbf,stroke:#333,stroke-width:2px
+      style D fill:#f96,stroke:#333,stroke-width:2px
   ```
 
   1. Tier 1: Edge Computing (ESP32)
@@ -66,7 +66,7 @@ flowchart LR
   3. Tier 3: Visualization & Analytics
   - Real-time Charting: Renders live ECG waveforms smoothly using Chart.js.
 
-  - Interactive UI: Clean, responsive dashboard designed in HTML/CSS featuring gauge meters for BPM, status alerts, and report generation controls.
+  - Interactive UI: Clean, responsive dashboard designed in HTML/CSS (templates/index.html) featuring gauge meters for BPM, status alerts, and report generation controls. 
   
 * **AD8232 ESP32 Connection**: 
 
@@ -141,28 +141,39 @@ flowchart LR
 ---
 
 ## How the R-R Interval Works
-(...)
+
+* **Definition**:
+
+  The **R-R Interval** is the exact duration (expressed in milliseconds) between the peaks of two consecutive **R-waves** (the highest voltage spikes in the QRS complex of an ECG signal). 
+
+  In embedded biomedical systems, this metric forms the computational baseline for calculating dynamic heart metrics.
+
+* **Mathematical Equation**:
+
+  The edge processor (ESP32) isolates the time difference ($\Delta T$) between successive threshold-crossing R-peaks to compute the instantaneous **Beats Per Minute (BPM)**:
+
+  $$\text{BPM} = \frac{60,000}{\text{R-R Interval (ms)}}$$
 
 ---
 
 ## Getting Started
 Follow these instructions to set up and run the entire system locally.
 
-* **Prerequisites**:
+### **Prerequisites**:
   - PlatformIO IDE installed (VS Code extension recommended).
 
   - Raspberry Pi with Python 3.8+ installed.
 
   - Hardware connections completed: AD8232 -> ESP32 -> Raspberry Pi.
 
-* **Step 1**: Flash the ESP32 Firmware
+### **Step 1**: Flash the ESP32 Firmware
   - Connect your ESP32 to your development machine.
 
   - Open the firmware folder in VS Code with PlatformIO.
 
   - Build and upload the firmware
 
-* **Step 2**: Set Up the Raspberry Pi Gateway
+### **Step 2**: Set Up the Raspberry Pi Gateway
   - Flash SD card for Raspberry Pi 
 
   - Enable UART on Raspberry Pi 
@@ -185,7 +196,7 @@ source venv/bin/activate
 
   - Get all the files in gateway_pi folder onto Raspberry Pi 
 
-* **Step 3**: Run the Services
+### **Step 3**: Run the Services
   You will need two active terminal sessions inside your virtual environment (source venv/bin/activate):
 
   - Terminal 1: Start the UART Reader 
@@ -205,17 +216,51 @@ python3 app.py
 ---
 
 ## 📊 Results & Demo
+
 * **Real-time Waveform Rendering**
-Below is the processed, clean ECG signal outputting live on the dashboard: (image)
+  Below is the processed, clean ECG signal outputting live on the dashboard: (image)
 
 * **Web Dashboard Overview**
-The web interface showing live heart rate metrics and historical reporting tools: (image)
+  The web interface showing live heart rate metrics and historical reporting tools: (image)
 
 * **Report**
-Report form: (image)
+  Report form: (image)
 
 ---
 
 ## Lessons Learned
+
+* **Embedded Systems & RTOS**: ESP32 utilizing C++, PlatformIO, FreeRTOS. 
+* **Digital Signal Processing (DSP)**: Digital Bandpass Filter and real-time peak-detection logic.
+* **IoT Gateways & Protocols**: UART Serial Communication, and WebSockets (Socket.IO).
+* **Backend & Data Engineering**: Raspberry Pi using Python. 
+* **Data Analytics & Clinical Reporting**: NumPy, Pandas, and Matplotlib to parse aggregated time-series data for Heart Rate Variability (HRV) metrics, and ReportLab PNG.
+* **Frontend Data Visualization**: Chart.js, HTML, and CSS.
+
+---
+
 ## Future Improvements
+
+* **Wireless Telemetry**: Transition from wired UART to Bluetooth Low Energy (BLE) or MQTT over Wi-Fi for patient mobility.
+* **Time-Series Database**: Replace the rolling CSV setup with InfluxDB or TimescaleDB for efficient high-frequency logging.
+* **Cloud Scaling**: Integrate an AWS IoT Core or MQTT broker to support multiple concurrent patient streams.
+
+---
+
 ## Resources
+
+### Core Technologies & Official Documentation
+- **ESP32 Technical Reference Manual**:  
+  [Espressif ESP32 TRM](https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf)
+
+- **Arduino-ESP32 Core**:  
+  [GitHub - espressif/arduino-esp32](https://github.com/espressif/arduino-esp32)
+
+- **Raspberry Pi UART & Flask-SocketIO**:  
+  [Raspberry Pi Documentation - UART](https://www.raspberrypi.com/documentation/computers/configuration.html#configuring-uarts)  
+  [Flask-SocketIO](https://flask-socketio.readthedocs.io/)
+
+### Learning Resources
+- FreeRTOS: [DigiKey - Introduction to RTOS course (12 videos)](https://youtu.be/F321087yYy4?si=iEa-WaJJoItqxhHM) 
+- Biomedical Signal Processing references (ECG filtering & QRS detection) 
+- Biomedical Metrics references (BPM, HRV)
