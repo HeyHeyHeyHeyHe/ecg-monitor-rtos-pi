@@ -127,16 +127,28 @@ This project implements a medical prototype designed to capture analog ECG signa
 
     style GPIO4 fill:#27ae60,stroke:#333
     style GPIO5 fill:#9b59b6,stroke:#333
+    style GPIO14 fill:#f39c12,stroke:#333
+    style GPIO15 fill:#f1c40f,stroke:#333
 
     linkStyle 0 stroke:#27ae60,stroke-width:3px
     linkStyle 1 stroke:#9b59b6,stroke-width:3px
-    linkStyle 2 stroke:#2c3e50,stroke-width:3px
   ```
 
 ---
 
-## 🔍 Engineering Insight: Signal Filtering 
-(...)
+## Engineering Insight: Signal Filtering 
+
+During the initial deployment, the raw analog signal captured by the front-end amplifier retained the general geometric morphology of the **QRS complex**. However, it suffered from severe **high-frequency noise** and **baseline wander** (induced by powerline interference and minor motion artifacts). This raw data stream significantly compromised the peak-detection accuracy, leading to false positives and highly erratic BPM calculations.
+
+To address this, a digital filtering pipeline was implemented:
+
+* **Before Filtering:** Jagged high-frequency ripples obscured the fine details of the waveform, making precise R-peak identification mathematically unreliable. 
+
+  (image)
+  
+* **After Filtering:** The implemented digital filters effectively attenuated out-of-band noise, isolating a clean, stabilized baseline. The resulting waveform presents distinct, well-defined R-peaks with smooth, prominent upward deflections. This stark contrast drastically simplifies threshold-based peak detection, ensuring highly stable and accurate real-time Heart Rate (BPM) computations.
+
+  (image)
 
 ---
 
@@ -217,24 +229,45 @@ python3 app.py
 
 ## 📊 Results & Demo
 
-* **Real-time Waveform Rendering**
-  Below is the processed, clean ECG signal outputting live on the dashboard: (image)
+* **Real-time Waveform Rendering and Web Dashboard Overview**
+  
+  Below is the processed, clean ECG signal outputting live on the web dashboard: 
+  
+  (video)
 
-* **Web Dashboard Overview**
-  The web interface showing live heart rate metrics and historical reporting tools: (image)
+* **Physical Implementation**
+  
+  Below is the physical hardware assembly showing the interconnected computing tiers and sensor routing:
+  
+  (image)
 
 * **Report**
-  Report form: (image)
+  
+  Report form: 
+  
+  (image)
+
+* **Demo**
+
+  Below is the demo video: 
+  *Note: Minor video lag is primarily caused by host machine overheating (thermal throttling) and full-resolution screen rendering.*
+
+  (video)
 
 ---
 
 ## Lessons Learned
 
 * **Embedded Systems & RTOS**: ESP32 utilizing C++, PlatformIO, FreeRTOS. 
+
 * **Digital Signal Processing (DSP)**: Digital Bandpass Filter and real-time peak-detection logic.
+  
 * **IoT Gateways & Protocols**: UART Serial Communication, and WebSockets (Socket.IO).
+  
 * **Backend & Data Engineering**: Raspberry Pi using Python. 
+  
 * **Data Analytics & Clinical Reporting**: NumPy, Pandas, and Matplotlib to parse aggregated time-series data for Heart Rate Variability (HRV) metrics, and ReportLab PNG.
+  
 * **Frontend Data Visualization**: Chart.js, HTML, and CSS.
 
 ---
