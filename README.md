@@ -239,7 +239,7 @@ python3 app.py
   
   Below is the physical hardware assembly showing the interconnected computing tiers and sensor routing:
   
-  (image)
+  <img width="4354" height="2520" alt="setup" src="https://github.com/user-attachments/assets/09568ae5-4314-4c52-8acf-31fd2b2df4db" />
 
 * **Report**
   
@@ -249,10 +249,11 @@ python3 app.py
 
 * **Demo**
 
-  Below is the demo video: 
+  Below is the demo video:
+
   *Note: Minor video lag is primarily caused by host machine overheating (thermal throttling) and full-resolution screen rendering. The original demo video was trimmed to satisfy GitHub’s file size limits while retaining all core functional demonstrations.*
 
-  (video)
+  https://github.com/user-attachments/assets/f40011b0-473f-4e6f-a3fb-5dcb4f22f350
 
 ---
 
