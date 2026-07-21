@@ -1,4 +1,4 @@
-<img width="1038" height="839" alt="filtered_ecg" src="https://github.com/user-attachments/assets/e59d0d81-2315-4346-a149-506d2068e5a6" /># Real-Time ECG Monitoring System
+# Real-Time ECG Monitoring System
 
 A robust, 3-tier real-time Electrocardiogram (ECG) monitoring system utilizing an **ESP32 (FreeRTOS)** for edge processing, a **Raspberry Pi** as an IoT gateway, and an interactive **Web Dashboard** for real-time visualization and analytics.
 
@@ -250,7 +250,7 @@ python3 app.py
 * **Demo**
 
   Below is the demo video: 
-  *Note: Minor video lag is primarily caused by host machine overheating (thermal throttling) and full-resolution screen rendering.*
+  *Note: Minor video lag is primarily caused by host machine overheating (thermal throttling) and full-resolution screen rendering. The original demo video was trimmed to satisfy GitHub’s file size limits while retaining all core functional demonstrations.*
 
   (video)
 
