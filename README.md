@@ -1,4 +1,4 @@
-# Real-Time ECG Monitoring System
+<img width="1038" height="839" alt="filtered_ecg" src="https://github.com/user-attachments/assets/e59d0d81-2315-4346-a149-506d2068e5a6" /># Real-Time ECG Monitoring System
 
 A robust, 3-tier real-time Electrocardiogram (ECG) monitoring system utilizing an **ESP32 (FreeRTOS)** for edge processing, a **Raspberry Pi** as an IoT gateway, and an interactive **Web Dashboard** for real-time visualization and analytics.
 
@@ -144,11 +144,11 @@ To address this, a digital filtering pipeline was implemented:
 
 * **Before Filtering:** Jagged high-frequency ripples obscured the fine details of the waveform, making precise R-peak identification mathematically unreliable. 
 
-  (image)
-  
+  <img width="1038" height="839" alt="raw_ecg" src="https://github.com/user-attachments/assets/0bc7827d-405f-4e09-80de-15d6bbd9e749" />
+
 * **After Filtering:** The implemented digital filters effectively attenuated out-of-band noise, isolating a clean, stabilized baseline. The resulting waveform presents distinct, well-defined R-peaks with smooth, prominent upward deflections. This stark contrast drastically simplifies threshold-based peak detection, ensuring highly stable and accurate real-time Heart Rate (BPM) computations.
 
-  (image)
+  <img width="1038" height="839" alt="filtered_ecg" src="https://github.com/user-attachments/assets/866d2b14-e6ec-46e5-bba3-e621ea300df3" />
 
 ---
 
@@ -233,7 +233,7 @@ python3 app.py
   
   Below is the processed, clean ECG signal outputting live on the web dashboard: 
   
-  (video)
+  https://github.com/user-attachments/assets/98f72fc5-ca55-44d6-8cc6-28db3757971f
 
 * **Physical Implementation**
   
@@ -244,8 +244,8 @@ python3 app.py
 * **Report**
   
   Report form: 
-  
-  (image)
+
+  <img width="2400" height="1500" alt="ecg_advanced_report" src="https://github.com/user-attachments/assets/140c81e8-7b25-4d6f-9c38-b6c66f402233" />
 
 * **Demo**
 
